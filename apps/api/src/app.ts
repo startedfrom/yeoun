@@ -29,10 +29,22 @@ export async function buildApp() {
   });
 
   const allowedOrigins = env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean);
+
+  function isAllowedCorsOrigin(origin: string): boolean {
+    if (allowedOrigins.includes(origin)) return true;
+    try {
+      const u = new URL(origin);
+      if (u.protocol === 'https:' && u.hostname.endsWith('.vercel.app')) return true;
+    } catch {
+      /* ignore */
+    }
+    return false;
+  }
+
   await app.register(cors, {
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
-      if (allowedOrigins.includes(origin)) return cb(null, true);
+      if (isAllowedCorsOrigin(origin)) return cb(null, true);
       return cb(null, false);
     }
   });

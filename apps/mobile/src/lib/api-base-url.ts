@@ -36,7 +36,18 @@ export function getApiBaseUrl(): string {
     process.env.EXPO_PUBLIC_API_URL ||
     process.env.EXPO_PUBLIC_API_BASE_URL;
   const fromExtra = readExtraApiBase();
-  const raw = fromEnv || fromExtra || 'http://localhost:4000/api/v1';
+  let raw = fromEnv || fromExtra || 'http://localhost:4000/api/v1';
+
+  if (typeof window !== 'undefined') {
+    const h = window.location.hostname;
+    const isLocal = h === 'localhost' || h === '127.0.0.1';
+    if (!isLocal && (raw.includes('localhost') || raw.includes('127.0.0.1'))) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[gamdojang] 웹 프로덕션에서 API가 localhost로 설정됐습니다. Vercel → Settings → Environment Variables에 EXPO_PUBLIC_API_BASE_URL(또는 EXPO_PUBLIC_API_URL)을 프로덕션 API 풀 URL(…/api/v1)로 넣고 재배포하세요.'
+      );
+    }
+  }
   const url = ensureApiVersionPath(raw);
   if (__DEV__ && url !== raw) {
     // eslint-disable-next-line no-console
