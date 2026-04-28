@@ -1,0 +1,42 @@
+{
+  "name": "@gamdojang/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "postinstall": "prisma generate",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src --ext .ts",
+    "test": "node --import tsx --test src/lib/admin-action-matrix.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate",
+    "prisma:seed": "prisma db seed",
+    "smoke:admin-rbac": "tsx scripts/admin-rbac-smoke.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@fastify/rate-limit": "^10.3.0",
+    "@gamdojang/domain": "workspace:*",
+    "@prisma/adapter-pg": "^7.7.0",
+    "@prisma/client": "^7.7.0",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.2.3",
+    "fastify": "^5.8.5",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.20.0",
+    "zod": "^4.3.6"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/pg": "^8.20.0",
+    "prisma": "^7.7.0",
+    "tsx": "^4.21.0"
+  }
+}

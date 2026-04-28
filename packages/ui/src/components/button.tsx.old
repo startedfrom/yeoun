@@ -1,0 +1,89 @@
+import type { PropsWithChildren } from 'react';
+import { Pressable, StyleSheet, Text } from 'react-native';
+
+import { colors, motion, radii, shadows, spacing, typography } from '../tokens';
+
+type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+
+type GdButtonProps = PropsWithChildren<{
+  variant?: ButtonVariant;
+  onPress?: () => void;
+  disabled?: boolean;
+}>;
+
+export function GdButton({
+  children,
+  disabled,
+  onPress,
+  variant = 'primary'
+}: GdButtonProps) {
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.base,
+        variantStyles[variant],
+        disabled && styles.disabled,
+        pressed && !disabled && styles.pressed
+      ]}
+    >
+      <Text
+        style={[styles.label, labelStyles[variant], disabled && styles.disabledLabel]}
+      >
+        {children}
+      </Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  base: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.lg
+  },
+  label: {
+    ...typography.bodyL,
+    fontWeight: '600'
+  },
+  pressed: {
+    transform: [{ scale: motion.scale.press }]
+  },
+  disabled: {
+    backgroundColor: colors.warmGray200,
+    borderColor: colors.warmGray200
+  },
+  disabledLabel: {
+    color: colors.warmGray400
+  }
+});
+
+const variantStyles = StyleSheet.create({
+  primary: {
+    backgroundColor: colors.lavender500,
+    ...shadows.soft
+  },
+  secondary: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.lavender200
+  },
+  ghost: {
+    backgroundColor: 'transparent'
+  }
+});
+
+const labelStyles = StyleSheet.create({
+  primary: {
+    color: colors.white
+  },
+  secondary: {
+    color: colors.ink900
+  },
+  ghost: {
+    color: colors.lavender500
+  }
+});

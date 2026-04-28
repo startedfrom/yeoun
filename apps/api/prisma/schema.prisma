@@ -1,0 +1,630 @@
+generator client {
+  provider = "prisma-client-js"
+  /// pnpm 이 @prisma/client 를 peer 조합별로 복제하면 `.prisma` 가 엇갈려 런타임이 깨짐.
+  /// 앱 소스 아래 단일 산출로 고정해 tsx·node 모두 동일 모듈을 본다.
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  active
+  suspended
+  deleted
+}
+
+enum UserRole {
+  user
+  admin
+  /// 운영 콘솔 전용: 조회·신고 처리 위주, 게시물/유저/편지 강제 변경 없음
+  moderator
+}
+
+enum AccountVisibility {
+  public
+  private
+}
+
+enum MessagePermission {
+  everyone
+  followers_only
+  following_only
+  nobody
+}
+
+enum PostType {
+  regular
+  chalna
+}
+
+enum PostVisibility {
+  public
+  followers_only
+  private
+}
+
+enum PostStatus {
+  active
+  hidden
+  deleted
+  expired
+}
+
+enum PawLabel {
+  슬쩍
+  콕
+  꾹
+  폭닥
+  젤리
+}
+
+enum CommentStatus {
+  active
+  hidden
+  deleted
+}
+
+enum FollowStatus {
+  pending
+  accepted
+}
+
+enum MessageType {
+  text
+  image
+  post_share
+}
+
+enum MessageRequestStatus {
+  pending
+  accepted
+  rejected
+  expired
+}
+
+enum NotificationType {
+  post_reaction
+  post_comment
+  comment_reply
+  follow
+  message_request
+  message_received
+  chalna_reaction
+  chalna_view
+}
+
+enum ReportTargetType {
+  post
+  comment
+  user
+  message
+}
+
+enum ReportReasonCode {
+  abuse
+  harassment
+  sexual
+  appearance_shaming
+  spam
+  impersonation
+  copyright
+  underage
+  other
+}
+
+enum ReportStatus {
+  submitted
+  reviewing
+  resolved
+  dismissed
+}
+
+enum PawReactionContext {
+  feed
+  piece_find
+  post_detail
+  other
+}
+
+enum PieceFindExcludeReason {
+  skip
+  pair_cleared
+  letter_sent
+}
+
+enum PieceFindPairSessionStatus {
+  open
+  consumed_skip
+  consumed_react
+}
+
+enum DevicePlatform {
+  ios
+  android
+}
+
+enum PaymentOrderStatus {
+  pending
+  authorized
+  captured
+  failed
+  refunded
+  cancelled
+}
+
+enum PaymentRefundStatus {
+  requested
+  processing
+  completed
+  rejected
+}
+
+model User {
+  id                      String                 @id @default(uuid()) @db.Uuid
+  email                   String?                @unique @db.VarChar(255)
+  passwordHash            String?                @map("password_hash") @db.VarChar(255)
+  socialProvider          String?                @map("social_provider") @db.VarChar(50)
+  socialProviderUserId    String?                @map("social_provider_user_id") @db.VarChar(255)
+  status                  UserStatus             @default(active)
+  role                    UserRole               @default(user)
+  emailVerified           Boolean                @default(false) @map("email_verified")
+  lastLoginAt             DateTime?              @map("last_login_at")
+  createdAt               DateTime               @default(now()) @map("created_at")
+  updatedAt               DateTime               @updatedAt @map("updated_at")
+  deletedAt               DateTime?              @map("deleted_at")
+  profile                 UserProfile?
+  interestMoodTags        UserInterestMoodTag[]
+  posts                   Post[]
+  reactions               PawReaction[]
+  comments                Comment[]
+  bookmarks               Bookmark[]
+  following               Follow[]               @relation("following_user")
+  followers               Follow[]               @relation("follower_user")
+  blocksInitiated         Block[]                @relation("blocker_user")
+  blocksReceived          Block[]                @relation("blocked_user")
+  conversationMembers     ConversationMember[]
+  sentMessages            Message[]              @relation("message_sender")
+  sentMessageRequests     MessageRequest[]       @relation("message_request_sender")
+  receivedMessageRequests MessageRequest[]       @relation("message_request_recipient")
+  notifications           Notification[]         @relation("notification_recipient")
+  notificationsTriggered  Notification[]         @relation("notification_actor")
+  notificationSetting     NotificationSetting?
+  deviceTokens            DeviceToken[]
+  reports                 Report[]               @relation("reporter_user")
+  adminActionLogs         AdminActionLog[]       @relation("admin_user")
+  pieceFindExclusions     PieceFindPostExclusion[]
+  pieceFindPairSessions   PieceFindPairSession[]
+  pieceFindPaidLetters    PieceFindPaidLetter[]
+  paymentOrders           PaymentOrder[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model UserProfile {
+  id                       String            @id @default(uuid()) @db.Uuid
+  userId                   String            @unique @map("user_id") @db.Uuid
+  nickname                 String            @unique @db.VarChar(30)
+  profileImageUrl          String?           @map("profile_image_url")
+  bio                      String?           @db.VarChar(160)
+  representativeMoodTagId  String?           @map("representative_mood_tag_id") @db.Uuid
+  accountVisibility        AccountVisibility @default(public) @map("account_visibility")
+  messagePermission        MessagePermission @default(following_only) @map("message_permission")
+  commentPermission        String            @default("everyone") @map("comment_permission") @db.VarChar(30)
+  isSearchable             Boolean           @default(true) @map("is_searchable")
+  postsCount               Int               @default(0) @map("posts_count")
+  followersCount           Int               @default(0) @map("followers_count")
+  followingCount           Int               @default(0) @map("following_count")
+  receivedReactionsCount   Int               @default(0) @map("received_reactions_count")
+  averagePawScore          Decimal           @default(0.00) @map("average_paw_score") @db.Decimal(4, 2)
+  createdAt                DateTime          @default(now()) @map("created_at")
+  updatedAt                DateTime          @updatedAt @map("updated_at")
+  user                     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  representativeMoodTag    MoodTag?          @relation(fields: [representativeMoodTagId], references: [id])
+
+  @@map("user_profiles")
+}
+
+model MoodTag {
+  id                      String                @id @default(uuid()) @db.Uuid
+  name                    String                @unique @db.VarChar(40)
+  slug                    String                @unique @db.VarChar(60)
+  displayOrder            Int                   @default(0) @map("display_order")
+  isActive                Boolean               @default(true) @map("is_active")
+  /// 오늘의 / 급상승 / 마이너 등 운영 슬롯. null 이면 일반 무드 태그.
+  editorialSlot           String?               @map("editorial_slot") @db.VarChar(24)
+  createdAt               DateTime              @default(now()) @map("created_at")
+  updatedAt               DateTime              @updatedAt @map("updated_at")
+  representativeProfiles  UserProfile[]
+  interestedUsers         UserInterestMoodTag[]
+  postLinks               PostMoodTag[]
+
+  @@map("mood_tags")
+}
+
+model UserInterestMoodTag {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  moodTagId  String   @map("mood_tag_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moodTag    MoodTag  @relation(fields: [moodTagId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, moodTagId])
+  @@map("user_interest_mood_tags")
+}
+
+model Post {
+  id                String        @id @default(uuid()) @db.Uuid
+  userId            String        @map("user_id") @db.Uuid
+  postType          PostType      @map("post_type")
+  caption           String?
+  locationText      String?       @map("location_text") @db.VarChar(120)
+  visibility        PostVisibility @default(public)
+  commentEnabled    Boolean       @default(true) @map("comment_enabled")
+  status            PostStatus    @default(active)
+  expiresAt         DateTime?     @map("expires_at")
+  commentsCount     Int           @default(0) @map("comments_count")
+  bookmarksCount    Int           @default(0) @map("bookmarks_count")
+  reactionsCount    Int           @default(0) @map("reactions_count")
+  reactionScoreSum  Int           @default(0) @map("reaction_score_sum")
+  reactionScoreAvg  Decimal       @default(0.00) @map("reaction_score_avg") @db.Decimal(4, 2)
+  topReactionLabel  PawLabel?     @map("top_reaction_label")
+  /// 운영자가 조각찾기 후보 풀에서 전역 제외
+  pieceFindGloballyExcluded Boolean @default(false) @map("piece_find_globally_excluded")
+  /// 패션 룩 적합 여부(라이프스타일 전용 등 제외). false 면 조각찾기 후보에서 제외
+  fashionEligible   Boolean       @default(true) @map("fashion_eligible")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  deletedAt         DateTime?     @map("deleted_at")
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images            PostImage[]
+  moodTags          PostMoodTag[]
+  reactions         PawReaction[]
+  comments          Comment[]
+  bookmarks         Bookmark[]
+  messages          Message[]
+  notifications            Notification[]
+  pieceFindExclusions      PieceFindPostExclusion[]
+  pieceFindSessionsAsA     PieceFindPairSession[]   @relation("piece_find_post_a")
+  pieceFindSessionsAsB     PieceFindPairSession[]   @relation("piece_find_post_b")
+  pieceFindPaidLetters     PieceFindPaidLetter[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([postType, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([expiresAt])
+  @@index([reactionScoreAvg(sort: Desc)])
+  @@map("posts")
+}
+
+model PostImage {
+  id         String   @id @default(uuid()) @db.Uuid
+  postId     String   @map("post_id") @db.Uuid
+  imageUrl   String   @map("image_url")
+  width      Int?
+  height     Int?
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_images")
+}
+
+model PostMoodTag {
+  id         String   @id @default(uuid()) @db.Uuid
+  postId     String   @map("post_id") @db.Uuid
+  moodTagId  String   @map("mood_tag_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  moodTag    MoodTag  @relation(fields: [moodTagId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, moodTagId])
+  @@map("post_mood_tags")
+}
+
+model PawReaction {
+  id         String             @id @default(uuid()) @db.Uuid
+  postId     String             @map("post_id") @db.Uuid
+  userId     String             @map("user_id") @db.Uuid
+  score      Int                @db.SmallInt
+  context    PawReactionContext @default(feed) @map("context")
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @updatedAt @map("updated_at")
+  post       Post               @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId, context])
+  @@map("paw_reactions")
+}
+
+model PieceFindPostExclusion {
+  userId    String                 @map("user_id") @db.Uuid
+  postId    String                 @map("post_id") @db.Uuid
+  reason    PieceFindExcludeReason @map("reason")
+  createdAt DateTime               @default(now()) @map("created_at")
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post                   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([userId, reason])
+  @@map("piece_find_post_exclusions")
+}
+
+model PieceFindPairSession {
+  id        String                     @id @default(uuid()) @db.Uuid
+  userId    String                     @map("user_id") @db.Uuid
+  postIdA   String                     @map("post_id_a") @db.Uuid
+  postIdB   String                     @map("post_id_b") @db.Uuid
+  status    PieceFindPairSessionStatus @default(open)
+  expiresAt DateTime                   @map("expires_at")
+  createdAt DateTime                   @default(now()) @map("created_at")
+  user      User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postA     Post                       @relation("piece_find_post_a", fields: [postIdA], references: [id], onDelete: Cascade)
+  postB     Post                       @relation("piece_find_post_b", fields: [postIdB], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("piece_find_pair_sessions")
+}
+
+model PieceFindPaidLetter {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @map("user_id") @db.Uuid
+  postId             String   @map("post_id") @db.Uuid
+  pairSessionId      String?  @map("pair_session_id") @db.Uuid
+  messageRequestId   String?  @map("message_request_id") @db.Uuid
+  paymentReference   String?  @map("payment_reference") @db.VarChar(120)
+  createdAt          DateTime @default(now()) @map("created_at")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post               Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  messageRequest     MessageRequest? @relation(fields: [messageRequestId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([postId])
+  @@map("piece_find_paid_letters")
+}
+
+model Comment {
+  id               String        @id @default(uuid()) @db.Uuid
+  postId           String        @map("post_id") @db.Uuid
+  userId           String        @map("user_id") @db.Uuid
+  parentCommentId  String?       @map("parent_comment_id") @db.Uuid
+  content          String        @db.VarChar(500)
+  status           CommentStatus @default(active)
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  deletedAt        DateTime?     @map("deleted_at")
+  post             Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentComment    Comment?      @relation("comment_thread", fields: [parentCommentId], references: [id])
+  replies          Comment[]     @relation("comment_thread")
+  notifications    Notification[]
+
+  @@index([postId, createdAt(sort: Asc)])
+  @@index([parentCommentId])
+  @@index([userId])
+  @@map("comments")
+}
+
+model Bookmark {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  postId     String   @map("post_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("bookmarks")
+}
+
+model Follow {
+  id              String       @id @default(uuid()) @db.Uuid
+  followerUserId  String       @map("follower_user_id") @db.Uuid
+  followeeUserId  String       @map("followee_user_id") @db.Uuid
+  status          FollowStatus @default(accepted)
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  follower        User         @relation("follower_user", fields: [followerUserId], references: [id], onDelete: Cascade)
+  followee        User         @relation("following_user", fields: [followeeUserId], references: [id], onDelete: Cascade)
+
+  @@unique([followerUserId, followeeUserId])
+  @@map("follows")
+}
+
+model Block {
+  id             String   @id @default(uuid()) @db.Uuid
+  blockerUserId  String   @map("blocker_user_id") @db.Uuid
+  blockedUserId  String   @map("blocked_user_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+  blocker        User     @relation("blocker_user", fields: [blockerUserId], references: [id], onDelete: Cascade)
+  blocked        User     @relation("blocked_user", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerUserId, blockedUserId])
+  @@map("blocks")
+}
+
+model Conversation {
+  id               String               @id @default(uuid()) @db.Uuid
+  conversationType String               @default("direct") @map("conversation_type") @db.VarChar(20)
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+  lastMessageAt    DateTime?            @map("last_message_at")
+  members          ConversationMember[]
+  messages         Message[]
+  notifications    Notification[]
+
+  @@map("conversations")
+}
+
+model ConversationMember {
+  id                String        @id @default(uuid()) @db.Uuid
+  conversationId    String        @map("conversation_id") @db.Uuid
+  userId            String        @map("user_id") @db.Uuid
+  lastReadMessageId String?       @map("last_read_message_id") @db.Uuid
+  joinedAt          DateTime      @default(now()) @map("joined_at")
+  conversation      Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_members")
+}
+
+model Message {
+  id              String      @id @default(uuid()) @db.Uuid
+  conversationId  String      @map("conversation_id") @db.Uuid
+  senderUserId    String      @map("sender_user_id") @db.Uuid
+  messageType     MessageType @default(text) @map("message_type")
+  content         String?
+  sharedPostId    String?     @map("shared_post_id") @db.Uuid
+  status          String      @default("sent") @db.VarChar(20)
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  deletedAt       DateTime?   @map("deleted_at")
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender          User         @relation("message_sender", fields: [senderUserId], references: [id], onDelete: Cascade)
+  sharedPost      Post?        @relation(fields: [sharedPostId], references: [id])
+
+  @@map("messages")
+}
+
+model MessageRequest {
+  id              String               @id @default(uuid()) @db.Uuid
+  fromUserId      String               @map("from_user_id") @db.Uuid
+  toUserId        String               @map("to_user_id") @db.Uuid
+  initialMessage  String?              @map("initial_message") @db.VarChar(300)
+  status          MessageRequestStatus @default(pending)
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+  fromUser        User                 @relation("message_request_sender", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser          User                 @relation("message_request_recipient", fields: [toUserId], references: [id], onDelete: Cascade)
+  pieceFindPaidLetters PieceFindPaidLetter[]
+
+  @@map("message_requests")
+}
+
+model Notification {
+  id                String            @id @default(uuid()) @db.Uuid
+  userId            String            @map("user_id") @db.Uuid
+  notificationType  NotificationType  @map("notification_type")
+  actorUserId       String?           @map("actor_user_id") @db.Uuid
+  postId            String?           @map("post_id") @db.Uuid
+  commentId         String?           @map("comment_id") @db.Uuid
+  conversationId    String?           @map("conversation_id") @db.Uuid
+  title             String            @db.VarChar(120)
+  body              String            @db.VarChar(300)
+  isRead            Boolean           @default(false) @map("is_read")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  user              User              @relation("notification_recipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor             User?             @relation("notification_actor", fields: [actorUserId], references: [id])
+  post              Post?             @relation(fields: [postId], references: [id])
+  comment           Comment?          @relation(fields: [commentId], references: [id])
+  conversation      Conversation?     @relation(fields: [conversationId], references: [id])
+
+  @@index([userId, isRead, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model NotificationSetting {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+  pushPostReaction    Boolean  @default(true) @map("push_post_reaction")
+  pushPostComment     Boolean  @default(true) @map("push_post_comment")
+  pushCommentReply    Boolean  @default(true) @map("push_comment_reply")
+  pushFollow          Boolean  @default(true) @map("push_follow")
+  pushMessageRequest  Boolean  @default(true) @map("push_message_request")
+  pushMessageReceived Boolean  @default(true) @map("push_message_received")
+  pushChalnaReaction  Boolean  @default(true) @map("push_chalna_reaction")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
+}
+
+model DeviceToken {
+  id          String         @id @default(uuid()) @db.Uuid
+  userId      String         @map("user_id") @db.Uuid
+  platform    DevicePlatform
+  deviceToken String         @map("device_token")
+  isActive    Boolean        @default(true) @map("is_active")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("device_tokens")
+}
+
+model Report {
+  id              String           @id @default(uuid()) @db.Uuid
+  reporterUserId  String           @map("reporter_user_id") @db.Uuid
+  targetType      ReportTargetType @map("target_type")
+  targetId        String           @map("target_id") @db.Uuid
+  reasonCode      ReportReasonCode @map("reason_code")
+  detailText      String?          @map("detail_text") @db.VarChar(500)
+  status          ReportStatus     @default(submitted)
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  reporter        User             @relation("reporter_user", fields: [reporterUserId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+model SearchHistory {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  keyword    String   @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("search_histories")
+}
+
+/// 결제·주문 도메인 초안. PG 연동 전 단계에서도 운영이 같은 테이블을 보도록 한다.
+model PaymentOrder {
+  id            String             @id @default(uuid()) @db.Uuid
+  userId        String             @map("user_id") @db.Uuid
+  provider      String             @db.VarChar(40)
+  externalRef   String?            @map("external_ref") @db.VarChar(200)
+  amountMinor   Int?               @map("amount_minor")
+  currency      String?            @db.VarChar(3)
+  status        PaymentOrderStatus @default(pending)
+  metadataJson  Json?              @map("metadata_json")
+  note          String?            @db.VarChar(500)
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refunds       PaymentRefund[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("payment_orders")
+}
+
+model PaymentRefund {
+  id          String              @id @default(uuid()) @db.Uuid
+  orderId     String              @map("order_id") @db.Uuid
+  status      PaymentRefundStatus @default(requested)
+  amountMinor Int?                @map("amount_minor")
+  reason      String?             @db.VarChar(200)
+  createdAt   DateTime            @default(now()) @map("created_at")
+  order       PaymentOrder        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("payment_refunds")
+}
+
+model AdminActionLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  adminUserId  String   @map("admin_user_id") @db.Uuid
+  actionType   String   @map("action_type") @db.VarChar(50)
+  targetType   String   @map("target_type") @db.VarChar(20)
+  targetId     String   @map("target_id") @db.Uuid
+  note         String?  @db.VarChar(500)
+  createdAt    DateTime @default(now()) @map("created_at")
+  adminUser    User     @relation("admin_user", fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@map("admin_action_logs")
+}

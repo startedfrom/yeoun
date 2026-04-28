@@ -1,0 +1,38 @@
+{
+  "name": "gamdojang",
+  "private": true,
+  "packageManager": "pnpm@10.11.1",
+  "pnpm": {
+    "overrides": {
+      "react": "19.2.5",
+      "react-dom": "19.2.5"
+    }
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @gamdojang/api --filter @gamdojang/mobile dev",
+    "dev:mobile": "pnpm --filter @gamdojang/mobile dev",
+    "dev:api": "pnpm --filter @gamdojang/api dev",
+    "dev:admin": "pnpm --filter @gamdojang/admin dev",
+    "free:api4000": "bash scripts/free-api-port.sh 4000",
+    "free:5173": "bash scripts/free-api-port.sh 5173",
+    "dev:admin-console": "bash scripts/free-api-port.sh 4000 && bash scripts/free-api-port.sh 5173 && pnpm --parallel --filter @gamdojang/api --filter @gamdojang/admin dev",
+    "lint": "pnpm -r --if-present run lint",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test",
+    "build": "pnpm -r --if-present run build",
+    "format": "pnpm exec prettier --write .",
+    "format:check": "pnpm exec prettier --check .",
+    "check": "pnpm lint && pnpm test && pnpm typecheck && pnpm build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/node": "^25.6.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^17.5.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.58.2"
+  }
+}
