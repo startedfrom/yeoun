@@ -1,11 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm --filter @gamdojang/admin build",
-  "outputDirectory": "apps/admin/dist",
+  "buildCommand": "pnpm --filter @gamdojang/mobile build:web",
+  "outputDirectory": "apps/mobile/dist",
   "rewrites": [
     {
-      "source": "/((?!assets/).*)",
+      "source": "/((?!_expo/|assets/).*)",
       "destination": "/index.html"
     }
   ]
