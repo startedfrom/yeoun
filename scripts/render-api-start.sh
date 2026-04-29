@@ -7,13 +7,14 @@ cd "$ROOT"
 corepack enable
 corepack prepare pnpm@10.11.1 --activate
 
-# Render 런타임 번들이 .gitignore 의 dist 로 빠지는 경우가 있어 dist 가 없으면 여기서 다시 빌드합니다.
+# deploy 슬러그에 dist 가 빠질 때: domain 은 DTS 제외 빌드만(빠름). tsup --dts 가 수십 초 걸려
+# Start 타임아웃(No open ports → Application exited early) 로 죽는 것을 줄임.
 if [ ! -f apps/api/dist/index.js ]; then
-  echo "[render-api-start] apps/api/dist missing — rebuilding (ignored dist omitted from deploy slug)"
+  echo "[render-api-start] apps/api/dist missing — fast rebuild (domain runtime emit only)"
   if [ ! -f node_modules/.modules.yaml ]; then
     pnpm install --frozen-lockfile
   fi
-  pnpm --filter @gamdojang/domain build
+  pnpm --filter @gamdojang/domain run build:runtime
   pnpm --filter @gamdojang/api build
 fi
 

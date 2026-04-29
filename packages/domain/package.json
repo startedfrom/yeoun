@@ -14,6 +14,7 @@
   "scripts": {
     "prepare": "tsup src/index.ts --format esm --dts",
     "build": "tsup src/index.ts --format esm --dts",
+    "build:runtime": "tsup src/index.ts --format esm",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
