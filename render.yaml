@@ -7,17 +7,10 @@ services:
     name: yeoun-api
     runtime: node
     plan: free
-    # 빌드/시작이 다른 셸에서 돌아가도 pnpm 을 쓰려면 corepack 이 안정적임.
-    buildCommand: >-
-      corepack enable &&
-      corepack prepare pnpm@10.11.1 --activate &&
-      pnpm install --frozen-lockfile &&
-      pnpm --filter @gamdojang/domain build &&
-      pnpm --filter @gamdojang/api build
-    startCommand: >-
-      corepack enable &&
-      corepack prepare pnpm@10.11.1 --activate &&
-      pnpm --filter @gamdojang/api run start:render
+    # 빌드/시작은 scripts/ 로 두고, Render 대시보드에서는 Build/Start 를 비워 Blueprint 를 쓰거나
+    # 반드시 아래 한 줄만 넣음 (직접 이어 붙이다 buildpnpm 같은 오타로 API 빌드가 스킵됨).
+    buildCommand: bash scripts/render-api-build.sh
+    startCommand: bash scripts/render-api-start.sh
     envVars:
       - key: NODE_VERSION
         value: "22"
