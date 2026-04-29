@@ -1,0 +1,18 @@
+# Render Blueprint — Web Service: apps/api (pnpm monorepo)
+# 대시보드에서 이름이 yeoun-api 로 맞으면 연동되거나, 새로 만들 때 참고.
+# DATABASE_URL 등 시크릿은 Render UI → Environment 에서만 설정.
+
+services:
+  - type: web
+    name: yeoun-api
+    runtime: node
+    plan: free
+    buildCommand: >-
+      npm install -g pnpm@10.11.1 &&
+      pnpm install --frozen-lockfile &&
+      pnpm --filter @gamdojang/domain build &&
+      pnpm --filter @gamdojang/api build
+    startCommand: pnpm --filter @gamdojang/api run start:render
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
