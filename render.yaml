@@ -7,12 +7,19 @@ services:
     name: yeoun-api
     runtime: node
     plan: free
+    # 빌드/시작이 다른 셸에서 돌아가도 pnpm 을 쓰려면 corepack 이 안정적임.
     buildCommand: >-
-      npm install -g pnpm@10.11.1 &&
+      corepack enable &&
+      corepack prepare pnpm@10.11.1 --activate &&
       pnpm install --frozen-lockfile &&
       pnpm --filter @gamdojang/domain build &&
       pnpm --filter @gamdojang/api build
-    startCommand: pnpm --filter @gamdojang/api run start:render
+    startCommand: >-
+      corepack enable &&
+      corepack prepare pnpm@10.11.1 --activate &&
+      pnpm --filter @gamdojang/api run start:render
     envVars:
       - key: NODE_VERSION
         value: "22"
+      - key: ENABLE_EXPERIMENTAL_COREPACK
+        value: "1"
