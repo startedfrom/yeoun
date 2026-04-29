@@ -15,7 +15,12 @@ if (existsSync(rootEnvPath)) {
 const apiEnvSchema = z.object({
   APP_ENV: z.enum(['development', 'test', 'production']).default('development'),
   API_HOST: z.string().default('0.0.0.0'),
-  API_PORT: z.coerce.number().int().positive().default(4000),
+  /** Render · Fly 등은 PORT 를 주입함. 미설정 시 4000. */
+  API_PORT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(() => Number(process.env.PORT ?? 4000)),
   API_PREFIX: z.string().default('/api/v1'),
   DATABASE_URL: z
     .string()
