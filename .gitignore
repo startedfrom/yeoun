@@ -6,7 +6,13 @@ node_modules
 .env
 .env.local
 .env.*.local
-dist
+# 빌드 산출물 (전역 `dist` 패턴은 Render 등 배포 번들에서 제외되는 사례가 있음 → 루트만)
+/dist
+apps/admin/dist
+apps/mobile/dist
+packages/domain/dist
+packages/ui/dist
+apps/api/dist
 coverage
 .DS_Store
 apps/api/dev.db
