@@ -19,7 +19,12 @@ import { HolographicCard } from '../../src/components/holographic-card';
 
 export default function MoodCardTabRoute() {
   const router = useRouter();
-  const { data: profileSummary, isLoading: profileLoading } = useProfile('me');
+  const {
+    data: profileSummary,
+    isLoading: profileLoading,
+    isError: profileError,
+    error: profileErr
+  } = useProfile('me');
   const { data: bookmarksData, isLoading: bookmarksLoading } = useBookmarks();
 
   const [activeTab, setActiveTab] = useState<'posts' | 'bookmarks'>('posts');
@@ -64,9 +69,17 @@ export default function MoodCardTabRoute() {
   }
 
   if (!profileSummary) {
+    const msg =
+      profileError && profileErr instanceof Error && profileErr.message.includes('authenticated')
+        ? '로그인한 뒤 다시 들어오면 프로필이 보여요.'
+        : profileError
+          ? '프로필을 불러올 수 없어요. Vercel에 EXPO_PUBLIC_API_BASE_URL을 넣었는지, 로그인됐는지 확인해 주세요.'
+          : '프로필을 불러올 수 없습니다.';
     return (
       <Screen header={<AppHeader title="해시카드" />}>
-        <Text style={{ textAlign: 'center', marginTop: 100 }}>프로필을 불러올 수 없습니다.</Text>
+        <Text style={{ textAlign: 'center', marginTop: 100, paddingHorizontal: 24 }}>
+          {msg}
+        </Text>
       </Screen>
     );
   }
