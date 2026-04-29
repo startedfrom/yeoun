@@ -161,7 +161,7 @@ export default function HomeTabRoute() {
   const currentTab = useFeedStore((state) => state.currentTab);
   const setCurrentTab = useFeedStore((state) => state.setCurrentTab);
   
-  const { data, isLoading } = useHomeFeed(currentTab);
+  const { data, isLoading, isError, error, refetch } = useHomeFeed(currentTab);
   const { mutate: updateReaction } = useUpdateReaction();
   const { mutate: createReport } = useCreateReport();
 
@@ -341,6 +341,35 @@ export default function HomeTabRoute() {
     );
   }
 
+  if (isError) {
+    return (
+      <Screen
+        scroll
+        header={
+          <AppHeader
+            leftSlot={
+              <Text style={{ fontFamily: 'DungGeunMo', fontSize: 24, color: colors.lavender400 }}>
+                YEO:UN
+              </Text>
+            }
+          />
+        }
+      >
+        <View style={{ paddingHorizontal: 24, paddingTop: 32, gap: 12 }}>
+          <Text style={{ textAlign: 'center', fontFamily: 'DungGeunMo', color: colors.ink900 }}>
+            피드를 불러오지 못했어요
+          </Text>
+          <Text style={{ textAlign: 'center', ...typography.caption, color: colors.warmGray500 }}>
+            {error instanceof Error ? error.message : '네트워크·로그인·API 주소를 확인해 주세요.'}
+          </Text>
+          <Pressable onPress={() => refetch()} style={{ alignSelf: 'center', paddingVertical: 12 }}>
+            <Text style={{ fontFamily: 'DungGeunMo', color: colors.lavender500 }}>다시 시도</Text>
+          </Pressable>
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <Screen
       scroll={false}
@@ -376,6 +405,11 @@ export default function HomeTabRoute() {
           data={feedItems}
           extraData={reactionOverrides.current}
           keyExtractor={(item) => item.postType === 'chalna' ? `chalna-${item.postId}` : item.postId}
+          ListEmptyComponent={
+            <Text style={[typography.bodyM, styles.feedEmptyHint]}>
+              아직 피드에 글이 없어요. DB 시드 후 다시 불러오거나, 업로드해 보세요.
+            </Text>
+          }
           ListHeaderComponent={renderChalnaHeader}
           keyboardShouldPersistTaps="always"
           ItemSeparatorComponent={() => <View style={styles.feedSpacer} />}
@@ -465,6 +499,13 @@ const styles = StyleSheet.create({
   },
   feedList: {
     flex: 1,
+  },
+  feedEmptyHint: {
+    textAlign: 'center',
+    marginTop: 48,
+    paddingHorizontal: spacing.lg,
+    color: colors.warmGray500,
+    fontFamily: 'DungGeunMo',
   },
   feedContextStrip: {
     flexDirection: 'row',

@@ -30,6 +30,18 @@ import { PawReactionSelector } from './paw-reaction-selector';
 import { PixelIcon } from './pixel-icon';
 import { TagChip } from './tag-chip';
 
+/** 웹에서는 `file://`·업로드 blob 이 DB에 들어간 이미지 URL이 그대로 오면 깨져 보임 */
+const FALLBACK_POST_IMAGE =
+  'https://images.unsplash.com/photo-1503341450723-e9b137aff6c9?auto=format&fit=crop&w=720&q=80';
+
+function heroImageUri(post: PostCardModel): string {
+  const raw = post.images?.[0]?.imageUrl?.trim();
+  if (!raw) return FALLBACK_POST_IMAGE;
+  if (raw.startsWith('https://')) return raw;
+  if (raw.startsWith('http://')) return raw;
+  return FALLBACK_POST_IMAGE;
+}
+
 export type FeedCardProps = {
   post: PostCardModel;
   onPress?: () => void;
@@ -90,7 +102,7 @@ export function FeedCard({
 
           <View style={styles.imageWrapperHome}>
             <Image
-              source={{ uri: post.images[0].imageUrl }}
+              source={{ uri: heroImageUri(post) }}
               style={styles.image}
               accessibilityIgnoresInvertColors
             />
@@ -248,7 +260,7 @@ export function FeedCard({
       {/* 1. Full Bleed Image — tap opens post (no outer <button> wrapping tags / reactions on web) */}
       <View style={styles.imageWrapper}>
         <Image
-          source={{ uri: post.images[0].imageUrl }}
+          source={{ uri: heroImageUri(post) }}
           style={styles.image}
           accessibilityIgnoresInvertColors
         />
